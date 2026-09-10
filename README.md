@@ -1,4 +1,11 @@
-# FALCON LandslideGuard AI
+# FALCON: LandslideGuard AI
+
+**Repository:** `syntax-terrors-falcon-landslide-detection`  
+**Team:** Syntax Terrors  
+**Version:** 1.1.0  
+**License:** Private / Proprietary  
+
+---
 
 FALCON LandslideGuard AI is an intelligent, real-time landslide monitoring, risk assessment, and early warning platform. The system integrates aerial drone image segmentation, 14-band multispectral satellite imagery analysis, geotechnical machine learning models, real-time ESP32 IoT sensor telemetry via MQTT, live meteorological forecasting, and interactive geospatial visualization into a unified operational dashboard.
 
@@ -27,31 +34,39 @@ FALCON LandslideGuard AI is an intelligent, real-time landslide monitoring, risk
 The platform operates using a distributed, event-driven architecture designed for high availability and low latency:
 
 ```
-[ ESP32 IoT Node ] ---> (MQTT Broker) ---> [ FastAPI Backend ] <--- (WeatherAPI / OSM)
-                                                   |
-                                     +-------------+-------------+
-                                     |                           |
-                            [ WebSocket Stream ]          [ REST Endpoints ]
-                                     |                           |
-                                     +-------------+-------------+
-                                                   |
-                                         [ React / Vite UI ]
++------------------+         +---------------+         +---------------------+
+|  ESP32 IoT Node  | ------> |  MQTT Broker  | ------> |   FastAPI Backend   | <--- (WeatherAPI / OSM)
++------------------+         +---------------+         +----------+----------+
+                                                                  |
+                                             +--------------------+--------------------+
+                                             |                                         |
+                                  +----------v----------+                   +----------v----------+
+                                  |  WebSocket Stream   |                   |   REST Endpoints    |
+                                  |   (/ws/live @ 2s)   |                   |     (/api/*)        |
+                                  +----------+----------+                   +----------+----------+
+                                             |                                         |
+                                             +--------------------+--------------------+
+                                                                  |
+                                                       +----------v----------+
+                                                       |  React / Vite UI    |
+                                                       +---------------------+
 ```
 
-1. **Edge Sensing Layer**: ESP32 microcontroller nodes stream environmental data (temperature, humidity, air quality/gas) to an MQTT broker.
-2. **Backend Processing Engine**: FastAPI server consumes MQTT streams, integrates external weather forecasting data via WeatherAPI, evaluates geotechnical thresholds, and executes PyTorch and Scikit-Learn inference models.
+### Component Breakdown
+1. **Edge Sensing Layer**: ESP32 microcontroller nodes capture and stream environmental metrics (temperature, humidity, air quality/gas) to an MQTT broker.
+2. **Backend Processing Engine**: A FastAPI server consumes MQTT data streams, integrates live precipitation metrics via WeatherAPI, evaluates geotechnical threshold limits, and executes PyTorch and Scikit-Learn inference pipelines.
 3. **Real-Time Telemetry Dispatcher**: A WebSocket hub broadcasts updated telemetry, risk metrics, and alert triggers to active dashboard sessions every two seconds.
-4. **Client Interface**: React/Vite dashboard provides interactive mapping (Leaflet), real-time sensor analytics, manual model execution pipelines, snapshot archiving (IndexedDB), and alert management.
+4. **Client Dashboard**: A React 18 / Vite single-page application providing geospatial visualization (Leaflet), real-time sensor analytics, manual model execution pipelines, snapshot archiving (IndexedDB), and automated alert management.
 
 ---
 
 ## Key Features
 
-- **Multi-Modal Risk Assessment**: Combines computer vision, satellite remote sensing, and numerical geotechnical modeling for multi-source risk validation.
-- **Real-Time Drone and Sensor Telemetry**: Live ingestion of IoT sensor data with automated fallback to mathematical simulations during network disruption.
+- **Multi-Modal Risk Assessment**: Synthesizes computer vision, satellite remote sensing, and numerical geotechnical modeling for cross-validated landslide hazard detection.
+- **Real-Time Drone and Sensor Telemetry**: Live ingestion of IoT sensor data with automated fallback to mathematical simulations during network disruptions.
 - **Geospatial Intelligence**: Interactive mapping using OpenStreetMap and Leaflet with dynamic reverse geocoding via Nominatim.
-- **Temporal Detection Verification**: Multi-frame confidence tracking to eliminate false positives in aerial visual detection.
-- **Meteorological Forecasting Integration**: Real-time precipitation and 6-hour / 24-hour rainfall trend tracking to evaluate ground saturation vulnerability.
+- **Temporal Detection Verification**: Multi-frame confidence tracking to prevent false positives in aerial visual detection.
+- **Meteorological Forecasting Integration**: Real-time precipitation and 6-hour / 24-hour rainfall trend tracking to evaluate slope saturation risk.
 - **Persistent Data Store**: Client-side snapshot archival leveraging IndexedDB for offline inspection and historical audit trails.
 
 ---
@@ -60,21 +75,28 @@ The platform operates using a distributed, event-driven architecture designed fo
 
 ### 1. Aerial Image Segmentation (FALCON-SegFormer)
 - **Architecture**: Transformer-based visual segmentation model.
-- **Purpose**: Detects landslide scarps, debris flow, soil displacement, and exposed bedrock in high-resolution aerial and drone imagery.
-- **Output**: Segmentation mask, maximum and mean class confidence scores, and percentage of affected surface area.
+- **Weights Location**: `backend/models/image/`
+- **Purpose**: Identifies landslide scarps, debris flow, soil displacement, and exposed bedrock in high-resolution drone imagery.
+- **Output**: Binary/multiclass segmentation mask, maximum and mean class confidence scores, and percentage of affected surface area.
 
 ### 2. Satellite Multispectral Model
 - **Architecture**: 14-band SegFormer model handling multispectral geospatial arrays.
-- **Input**: HDF5 (`.h5`) datasets containing optical, near-infrared, and shortwave infrared satellite bands.
+- **Weights Location**: `backend/models/satellite/`
+- **Input**: HDF5 (`.h5`) datasets containing optical, near-infrared (NIR), and shortwave infrared (SWIR) satellite bands.
 - **Purpose**: Macro-scale terrain analysis and broad-area slip classification.
 
 ### 3. Geotechnical Numerical Risk Model
 - **Architecture**: Hybrid Scikit-Learn / XGBoost regression and classification pipeline.
+- **Weights Location**: `backend/models/numerical/FALCON_hybrid_landslide_model.pkl`
 - **Input Parameters**: Soil moisture, rainfall accumulation (1h, 24h, 7d), slope angle, ground vibration, pore water pressure, elevation, terrain curvature, and NDVI (Normalized Difference Vegetation Index).
 - **Output**: Numerical probability score indicating slope instability.
 
 ### 4. Risk Engine Fusion
-- Weighted synthesis of visual detection confidence, geotechnical stability index, and cumulative precipitation trends to classify hazard levels into `LOW`, `MODERATE`, `HIGH`, or `CRITICAL`.
+- Evaluates a weighted synthesis of visual detection confidence, geotechnical stability indices, and cumulative precipitation trends to categorize hazard levels:
+  - `LOW` (0.0 - 25.0)
+  - `MODERATE` (25.1 - 50.0)
+  - `HIGH` (50.1 - 75.0)
+  - `CRITICAL` (75.1 - 100.0)
 
 ---
 
@@ -83,26 +105,26 @@ The platform operates using a distributed, event-driven architecture designed fo
 - **Operating System**: Windows 10/11, macOS, or Linux
 - **Node.js**: Version 18.0.0 or higher
 - **Python**: Version 3.11 or higher
-- **Web Browser**: Modern Chromium-based browser, Firefox, or Safari with Geolocation API enabled
+- **Web Browser**: Chromium-based browser (Chrome, Edge, Brave), Firefox, or Safari with Geolocation API enabled
 - **Hardware (Optional)**: ESP32 development board with environmental sensors
 
 ---
 
 ## Environment Configuration
 
-Configuration variables are managed via the `.env` file in the project root. Copy the template file to begin:
+Configuration variables are managed via the `.env` file in the project root. Create the `.env` file from the example template:
 
 ```bash
 cp .env.example .env
 ```
 
-### Configuration Variables
+### Configuration Variables Reference
 
 | Variable | Required | Default Value | Description |
 | :--- | :--- | :--- | :--- |
 | `VITE_API_BASE_URL` | Yes | `http://localhost:8000` | Backend REST API endpoint for the frontend client |
 | `VITE_WS_BASE_URL` | Yes | `ws://localhost:8000` | WebSocket endpoint for live telemetry streaming |
-| `WEATHERAPI_KEY` | Optional | `your_weatherapi_key_here` | API key from WeatherAPI.com for live precipitation data |
+| `WEATHERAPI_KEY` | Optional | `""` | API key from WeatherAPI.com for live precipitation data |
 | `MQTT_BROKER` | Yes | `broker.hivemq.com` | MQTT broker hostname or IP address |
 | `MQTT_PORT` | Yes | `1883` | MQTT broker TCP connection port |
 | `MQTT_TOPIC` | Yes | `drone/disaster/telemetry` | MQTT subscription topic for incoming ESP32 payloads |
@@ -116,19 +138,19 @@ cp .env.example .env
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/rockyashp/syntax-terrors-falcon-landslide-detection.git
 cd landslideguard-ai-final
 ```
 
 ### 2. Frontend Dependencies
-Install the required Node.js packages:
+Install all required Node.js packages:
 
 ```bash
 npm install
 ```
 
 ### 3. Backend Dependencies
-Set up an isolated Python virtual environment and install all necessary backend packages:
+Set up an isolated Python virtual environment and install all backend requirements:
 
 #### On Windows (PowerShell):
 ```powershell
@@ -149,9 +171,9 @@ pip install -r backend/requirements.txt
 
 ## Running the Application
 
-Running the platform requires starting both the FastAPI backend and the Vite frontend development server concurrently in separate terminals.
+Running the complete platform requires starting both the FastAPI backend and the Vite frontend server concurrently in separate terminal sessions.
 
-### Terminal 1: Launch Backend
+### Terminal 1: Launch Backend Server
 
 #### Windows (PowerShell):
 ```powershell
@@ -164,44 +186,46 @@ source .venv/bin/activate
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Backend Services:
+**Backend Endpoints:**
 - REST API: `http://localhost:8000`
 - Interactive API Documentation (Swagger UI): `http://localhost:8000/docs`
 - Health Diagnostic Endpoint: `http://localhost:8000/health`
 - WebSocket Live Feed: `ws://localhost:8000/ws/live`
 
-### Terminal 2: Launch Frontend
+---
+
+### Terminal 2: Launch Frontend Client
 
 ```bash
 npm run dev -- --host 0.0.0.0
 ```
 
-Access the user interface by opening the URL displayed in the terminal:
+Open your browser and navigate to:
 ```
 http://localhost:5173
 ```
 
-*Note: Allow browser location permissions when prompted to enable real-time local weather forecasts and map centering.*
+*Note: Grant browser location permission when prompted to enable real-time local weather tracking and map centering.*
 
 ---
 
 ## Stopping Services
 
-To terminate the running development servers, focus each terminal window and press `Ctrl + C`.
+To stop running servers, press `Ctrl + C` in each terminal window.
 
-If background processes remain bound to the service ports on Windows, release them using PowerShell:
+If any background processes remain bound to the service ports on Windows, terminate them via PowerShell:
 
 ```powershell
-# Terminate process listening on port 5173 (Frontend)
+# Terminate process on port 5173 (Frontend)
 Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue |
   ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
 
-# Terminate process listening on port 8000 (Backend)
+# Terminate process on port 8000 (Backend)
 Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue |
   ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
 ```
 
-On Linux or macOS:
+On Linux / macOS:
 ```bash
 lsof -ti:5173 | xargs kill -9
 lsof -ti:8000 | xargs kill -9
@@ -214,8 +238,9 @@ lsof -ti:8000 | xargs kill -9
 ### WebSocket Protocol
 
 - **Endpoint**: `ws://localhost:8000/ws/live`
-- **Direction**: Server-to-Client broadcast (emitted every 2 seconds).
+- **Direction**: Server-to-Client broadcast (emitted every 2 seconds)
 - **Payload Schema**:
+
 ```json
 {
   "type": "TELEMETRY_UPDATE",
@@ -256,7 +281,7 @@ lsof -ti:8000 | xargs kill -9
 }
 ```
 
-### Core REST Endpoints
+### Core REST API Endpoints
 
 | Method | Path | Description |
 | :--- | :--- | :--- |
@@ -278,9 +303,9 @@ lsof -ti:8000 | xargs kill -9
 
 The platform supports external telemetry ingestion from microcontrollers such as the ESP32.
 
-### MQTT Ingestion Schema
+### MQTT Ingestion Payload
 
-The ESP32 publishes JSON payloads to the topic specified in `MQTT_TOPIC`:
+The ESP32 publishes JSON payloads to the topic configured in `MQTT_TOPIC`:
 
 ```json
 {
@@ -291,10 +316,10 @@ The ESP32 publishes JSON payloads to the topic specified in `MQTT_TOPIC`:
 ```
 
 ### Telemetry Pipeline
-1. ESP32 reads physical sensor pins.
-2. ESP32 transmits formatted JSON to the configured MQTT broker.
-3. Backend MQTT client ingests payload and updates the in-memory state.
-4. The WebSocket connection pushes updated metrics to connected browser clients.
+1. ESP32 reads physical sensor pins (DHT22/BME280, MQ series gas sensor).
+2. ESP32 transmits formatted JSON payload to the configured MQTT broker.
+3. Backend MQTT client ingests the payload and updates in-memory telemetry state.
+4. The WebSocket broadcaster pushes updated metrics to all active dashboard sessions.
 
 *Note: In production environments, replace public MQTT brokers with an authenticated, TLS-encrypted broker instance.*
 
@@ -309,7 +334,7 @@ To validate TypeScript types and compile optimized production assets:
 npm run build
 ```
 
-The output bundle is generated in the `dist/` directory. You can preview the production build locally:
+The compiled output is placed in `dist/`. Preview the production build locally:
 
 ```bash
 npm run preview
@@ -333,8 +358,8 @@ python -m compileall backend
 ## Troubleshooting
 
 ### Backend Fails to Start
-- Ensure dependencies are installed in the active virtual environment.
-- Check Python version compatibility (`python --version` should be 3.11 or newer).
+- Ensure all Python dependencies are installed in the active virtual environment.
+- Verify Python version compatibility (`python --version` should be 3.11 or newer).
 - Verify that port `8000` is not occupied by another process.
 
 ### Weather Data Displays as Simulation
@@ -386,5 +411,3 @@ landslideguard-ai-final/
 ├── tsconfig.json              # TypeScript compiler configuration
 └── vite.config.ts             # Vite build and development configuration
 ```
-#   s y n t a x - t e r r o r s - f a l c o n - l a n d s l i d e - d e t e c t i o n  
- 
