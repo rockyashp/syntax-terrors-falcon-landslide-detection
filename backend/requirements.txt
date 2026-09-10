@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pillow
+numpy
+torch
+torchvision
+transformers
+safetensors
+scikit-learn
+xgboost
+joblib
+pydantic
+websockets
+h5py
+python-dotenv
+paho-mqtt
