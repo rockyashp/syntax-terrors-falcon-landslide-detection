@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import uuid
+import re
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -14,9 +15,9 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from dotenv import load_dotenv
 import paho.mqtt.client as mqtt
-from fastapi import Body, FastAPI, UploadFile, File, Form, WebSocket, WebSocketDisconnect
+from fastapi import Body, FastAPI, UploadFile, File, Form, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from satellite_model import FALCONSatelliteModel
 from image_model import FALCONImageModel
@@ -65,10 +66,10 @@ MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
 def _safe_load(name, loader):
     try:
         model = loader()
-        print(f"✅ {name} ready")
+        print(f"[OK] {name} ready")
         return model, None
     except Exception as exc:  # noqa: BLE001
-        print(f"⚠️  {name} failed to load: {exc}")
+        print(f"[WARN] {name} failed to load: {exc}")
         return None, str(exc)
 
 
@@ -83,6 +84,8 @@ numerical_model, numerical_model_error = _safe_load(
         os.path.join(MODELS_DIR, "numerical", "FALCON_hybrid_landslide_model.pkl")
     ),
 )
+if numerical_model is not None:
+    state.numerical_model = numerical_model
 
 satellite_model, satellite_model_error = _safe_load(
     "FALCON satellite model",
@@ -193,13 +196,64 @@ def _reverse_geocode(latitude: float, longitude: float) -> str:
 
 
 def _mqtt_message(client, userdata, message):
+    raw_text = ""
     try:
-        payload = json.loads(message.payload.decode("utf-8"))
-        if not all(key in payload for key in ("temp", "humidity", "gas")):
-            raise ValueError("payload must contain temp, humidity, and gas")
+        raw_text = message.payload.decode("utf-8", errors="replace").strip()
+        
+        # 1. Try standard / sanitized JSON parsing
+        sanitized = re.sub(r':\s*(nan|NaN|None|null)\b', ': null', raw_text, flags=re.IGNORECASE)
+        payload = {}
+        try:
+            payload = json.loads(sanitized)
+        except Exception:
+            # 2. Robust Regex Extraction fallback if JSON is still broken
+            temp_match = re.search(r'["\']?temp["\']?\s*:\s*([0-9.-]+|nan|null)', raw_text, re.IGNORECASE)
+            hum_match = re.search(r'["\']?humidity["\']?\s*:\s*([0-9.-]+|nan|null)', raw_text, re.IGNORECASE)
+            gas_match = re.search(r'["\']?gas["\']?\s*:\s*([0-9.-]+|nan|null)', raw_text, re.IGNORECASE)
+
+            def _parse_val(match, default):
+                if not match:
+                    return default
+                val_str = match.group(1).lower()
+                if val_str in ("nan", "null", "none"):
+                    return default
+                try:
+                    return float(val_str)
+                except ValueError:
+                    return default
+
+            payload = {
+                "temp": _parse_val(temp_match, state.weather.get("temperature", 24.5)),
+                "humidity": _parse_val(hum_match, state.weather.get("humidity", 58.0)),
+                "gas": _parse_val(gas_match, 310),
+            }
+
+        # Fallback values if temp/humidity are missing or None
+        if not isinstance(payload, dict):
+            payload = {}
+        
+        temp_val = payload.get("temp")
+        hum_val = payload.get("humidity")
+        gas_val = payload.get("gas")
+
+        if temp_val is None or str(temp_val).lower() in ("nan", "none", "null"):
+            payload["temp"] = float(state.weather.get("temperature", 24.5))
+        else:
+            payload["temp"] = float(temp_val)
+
+        if hum_val is None or str(hum_val).lower() in ("nan", "none", "null"):
+            payload["humidity"] = float(state.weather.get("humidity", 58.0))
+        else:
+            payload["humidity"] = float(hum_val)
+
+        if gas_val is None or str(gas_val).lower() in ("nan", "none", "null"):
+            payload["gas"] = 310
+        else:
+            payload["gas"] = int(float(gas_val))
+
         state.ingest_mqtt_payload(payload)
-    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError, KeyError) as exc:
-        print(f"Ignored invalid ESP32 MQTT payload: {exc}")
+    except Exception as exc:
+        print(f"Ignored invalid ESP32 MQTT payload: {exc} | Raw text: '{raw_text}'")
 
 
 def _mqtt_connected(client, userdata, flags, rc):
@@ -432,14 +486,23 @@ async def api_ai_analyze(
         contents = await file.read()
     elif image_data:
         import base64
-
-        header_split = image_data.split(",", 1)
-        raw = header_split[1] if len(header_split) == 2 else header_split[0]
-        contents = base64.b64decode(raw)
+        try:
+            header_split = image_data.split(",", 1)
+            raw = header_split[1] if len(header_split) == 2 else header_split[0]
+            contents = base64.b64decode(raw)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid base64 image data: {e}")
     else:
-        return {"error": "no image provided (use 'file' or 'image_data')"}
+        raise HTTPException(status_code=400, detail="No image provided (use 'file' or 'image_data')")
 
-    image = Image.open(io.BytesIO(contents))
+    if not contents or len(contents) == 0:
+        raise HTTPException(status_code=400, detail="Provided image file/payload is empty.")
+
+    try:
+        image = Image.open(io.BytesIO(contents))
+        image.load()  # Verify image integrity
+    except (UnidentifiedImageError, OSError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=f"Cannot identify or decode image file: {e}")
 
     start = time.time()
     result = image_model.predict(image)
@@ -511,9 +574,16 @@ async def predict_image(file: UploadFile = File(...)):
         return {"error": f"image model unavailable: {image_model_error}"}
 
     image_bytes = await file.read()
-    image = Image.open(io.BytesIO(image_bytes))
-    result = image_model.predict(image)
+    if not image_bytes or len(image_bytes) == 0:
+        raise HTTPException(status_code=400, detail="Uploaded image file is empty.")
 
+    try:
+        image = Image.open(io.BytesIO(image_bytes))
+        image.load()
+    except (UnidentifiedImageError, OSError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=f"Cannot identify or decode image file: {e}")
+
+    result = image_model.predict(image)
     return {"filename": file.filename, "result": result}
 
 
@@ -580,7 +650,7 @@ async def predict_risk(
     # --------------------------------------------------------
     # FINAL RISK
     # --------------------------------------------------------
-    risk = calculate_final_risk(image_result, numerical_result)
+    risk = calculate_final_risk(image_result, numerical_result, slope=slope)
 
     return {
         "system": "FALCON",

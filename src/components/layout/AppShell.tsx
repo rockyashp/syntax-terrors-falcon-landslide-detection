@@ -16,6 +16,7 @@ import { DronePage } from '../../pages/DronePage';
 import { SnapshotsPage } from '../../pages/SnapshotsPage';
 import { AlertsPage } from '../../pages/AlertsPage';
 import { SystemPage } from '../../pages/SystemPage';
+import { FalconAgent } from '../agent/FalconAgent';
 
 export const AppShell: React.FC = () => {
   // Activate live telemetry hook
@@ -29,6 +30,7 @@ export const AppShell: React.FC = () => {
         <LandingPage />
         <Toast />
         <CommandPalette />
+        <FalconAgent />
       </div>
     );
   }
@@ -77,6 +79,7 @@ export const AppShell: React.FC = () => {
       <Toast />
       <CommandPalette />
       <WeatherModal />
+      <FalconAgent />
     </div>
   );
 };

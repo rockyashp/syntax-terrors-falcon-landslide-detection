@@ -123,11 +123,20 @@ export interface RiskComponents {
   pore_pressure: number;
 }
 
+export interface RiskWeights {
+  vision_weight: number;
+  geotechnical_weight: number;
+}
+
 export interface RiskState {
   score: number;
   level: RiskLevel;
   trend: 'STABLE' | 'INCREASING' | 'DECREASING';
   components: RiskComponents;
+  weights?: RiskWeights;
+  overrides?: string[];
+  geotechnicalScore?: number;
+  slopeGate?: number;
   lastUpdated: string;
 }
 

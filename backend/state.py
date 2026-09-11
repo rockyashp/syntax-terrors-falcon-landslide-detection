@@ -7,15 +7,20 @@ feed, etc). Until that hardware is wired in, this module provides a
 realistic, continuously-updating simulation so the frontend has real data
 to poll/subscribe to over HTTP + WebSocket instead of freezing on defaults.
 
-The *AI detection* and *risk fusion* numbers are NOT simulated — they are
-overwritten with real model output whenever /api/ai/analyze or
-/predict/risk are called (see main.py).
+The AI detection and risk fusion pipeline utilizes the 4-tier Hierarchical
+Risk Engine:
+1. Topographic Gating
+2. Continuous XGBoost Inference (with physical heuristic fallback)
+3. Hard Fail-Safe Physical Overrides (movement > 8mm, pore pressure > 50kPa)
+4. Adaptive Vision Fusion (scales dynamically based on temporal confirmation)
 """
 
 import math
 import random
 import time
 from datetime import datetime, timezone
+
+from risk_engine import calculate_geotechnical_risk, calculate_final_risk
 
 
 def now_iso() -> str:
@@ -36,6 +41,9 @@ def status_for(value, safe, monitor, warning):
 class SystemState:
     def __init__(self):
         self.start_time = time.time()
+        self.numerical_model = None
+        self.terrain_slope = 34.0  # degrees
+        self.terrain_vegetation = 0.45  # NDVI
 
         self.drone = {
             "id": "DRONE-01",
@@ -109,11 +117,18 @@ class SystemState:
             "trend": "STABLE",
             "components": {
                 "ai": 0.0,
-                "rainfall": 0.1,
-                "soil_moisture": 0.2,
-                "ground_movement": 0.05,
-                "pore_pressure": 0.1,
+                "rainfall": 0.13,
+                "soil_moisture": 0.42,
+                "ground_movement": 0.08,
+                "pore_pressure": 0.25,
             },
+            "weights": {
+                "vision_weight": 0.05,
+                "geotechnical_weight": 0.95,
+            },
+            "overrides": [],
+            "geotechnicalScore": 12.0,
+            "slopeGate": 0.75,
             "lastUpdated": now_iso(),
         }
 
@@ -213,53 +228,68 @@ class SystemState:
         }
 
     def recompute_risk(self):
-        """Fuse the latest AI confidence with live sensor readings.
-
-        Weighting mirrors the frontend's own heuristic (utils/risk.ts) so
-        the score means the same thing whether it's computed client-side
-        or served by the backend:
-        AI 35% / ground movement 30% / rainfall 15% / soil moisture 10% / pore pressure 10%
+        """Unified 4-Tier Hierarchical Risk Engine:
+        1. Topographic Slope Gating.
+        2. Continuous Geotechnical ML Inference (XGBoost) or Physical Heuristic.
+        3. Hard Fail-Safe Physical Overrides (movement > 8mm, pore pressure > 50kPa).
+        4. Adaptive Multi-Modal Vision Fusion (scales 0% - 45% based on temporal confirmation).
         """
-        ai_component = self.ai_latest.get("confidence", 0.0) if self.ai_latest.get("detected") else self.ai_latest.get("confidence", 0.0) * 0.3
-        rainfall_component = min(1.0, self.sensors["rainfall"] / 60.0)
-        soil_component = min(1.0, self.sensors["soil_moisture"] / 100.0)
-        movement_component = min(1.0, self.sensors["ground_movement"] / 15.0)
-        pore_component = min(1.0, self.sensors["pore_pressure"] / 60.0)
-
-        components = {
-            "ai": round(ai_component, 3),
-            "rainfall": round(rainfall_component, 3),
-            "soil_moisture": round(soil_component, 3),
-            "ground_movement": round(movement_component, 3),
-            "pore_pressure": round(pore_component, 3),
+        sensor_data = {
+            "rainfall": self.sensors["rainfall"],
+            "soil_moisture": self.sensors["soil_moisture"],
+            "ground_movement": self.sensors["ground_movement"],
+            "pore_pressure": self.sensors["pore_pressure"],
+            "temperature": self.weather.get("temperature", 21.0),
+            "humidity": self.weather.get("humidity", 55.0),
         }
 
-        raw_score = (
-            components["ai"] * 35
-            + components["ground_movement"] * 30
-            + components["rainfall"] * 15
-            + components["soil_moisture"] * 10
-            + components["pore_pressure"] * 10
+        geo_result = calculate_geotechnical_risk(
+            sensor_data=sensor_data,
+            numerical_model=self.numerical_model,
+            slope=self.terrain_slope,
+            vegetation=self.terrain_vegetation,
         )
-        score = max(0, min(100, round(raw_score)))
 
-        if score > 75:
-            level = "VERY_HIGH"
-        elif score > 50:
-            level = "HIGH"
-        elif score > 25:
-            level = "MONITOR"
-        else:
-            level = "SAFE"
+        temporal_status = self.ai_latest.get("temporalStatus", "NONE")
+        camera_online = self.system_health.get("camera") == "ONLINE"
+
+        fusion_result = calculate_final_risk(
+            image_result=self.ai_latest,
+            numerical_result=geo_result,
+            temporal_status=temporal_status,
+            camera_online=camera_online,
+            slope=self.terrain_slope,
+        )
+
+        score = int(round(fusion_result["final_score"]))
+        level = fusion_result["risk_level"]
+        if level == "CRITICAL":
+            level = "VERY_HIGH"  # Keep compatible with frontend RiskLevel union type
 
         prev_score = self.risk.get("score", score)
         trend = "INCREASING" if score > prev_score else "DECREASING" if score < prev_score else "STABLE"
+
+        ai_component = (
+            self.ai_latest.get("confidence", 0.0)
+            if self.ai_latest.get("detected")
+            else self.ai_latest.get("confidence", 0.0) * 0.3
+        )
 
         self.risk = {
             "score": score,
             "level": level,
             "trend": trend,
-            "components": components,
+            "components": {
+                "ai": round(ai_component, 3),
+                "rainfall": geo_result["components"]["rainfall_factor"],
+                "soil_moisture": geo_result["components"]["soil_moisture_factor"],
+                "ground_movement": geo_result["components"]["ground_movement_factor"],
+                "pore_pressure": geo_result["components"]["pore_pressure_factor"],
+            },
+            "weights": fusion_result.get("weights"),
+            "overrides": geo_result.get("overrides_applied", []),
+            "geotechnicalScore": geo_result.get("geotechnical_score"),
+            "slopeGate": geo_result.get("slope_gate"),
             "lastUpdated": now_iso(),
         }
 
@@ -324,6 +354,12 @@ class SystemState:
             "risk": {
                 "score": self.risk["score"],
                 "level": self.risk["level"],
+                "trend": self.risk["trend"],
+                "components": self.risk["components"],
+                "weights": self.risk.get("weights"),
+                "overrides": self.risk.get("overrides", []),
+                "geotechnicalScore": self.risk.get("geotechnicalScore"),
+                "slopeGate": self.risk.get("slopeGate"),
             },
             "iotPayload": {
                 "temp": self.iot["temp"],

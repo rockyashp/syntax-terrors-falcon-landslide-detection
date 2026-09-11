@@ -14,11 +14,14 @@ export const RiskEngineCard: React.FC = () => {
     ? Math.round(aiLatest.confidence * 100)
     : Math.round(aiLatest.confidence * 30);
 
-  const numericalScorePercent = Math.round(
-    (sensors.ground_movement / 15) * 50 +
-    (sensors.rainfall / 60) * 30 +
-    (sensors.soil_moisture / 100) * 20
-  );
+  const numericalScorePercent =
+    risk.geotechnicalScore !== undefined
+      ? Math.round(risk.geotechnicalScore)
+      : Math.round(
+          (sensors.ground_movement / 15) * 50 +
+            (sensors.rainfall / 60) * 30 +
+            (sensors.soil_moisture / 100) * 20
+        );
 
   return (
     <div className="flex flex-col rounded-xl glass-2 border border-white/[0.08] p-4 space-y-4 select-none">
@@ -33,7 +36,7 @@ export const RiskEngineCard: React.FC = () => {
               FALCON Risk Engine
             </h3>
             <p className="text-[10px] font-mono text-text-muted">
-              50/50 Dual-Model Landslide Probability
+              Hierarchical Multi-Modal Hazard Index
             </p>
           </div>
         </div>
@@ -50,11 +53,14 @@ export const RiskEngineCard: React.FC = () => {
       {/* Dominant Radial Score */}
       <RiskGauge score={risk.score} level={risk.level} trend={risk.trend} />
 
-      {/* 50 / 50 Fusion Branch */}
+      {/* Adaptive Fusion Branch */}
       <RiskFusion
         imageScorePercent={imageScorePercent || 48}
-        numericalScorePercent={numericalScorePercent || 92}
+        numericalScorePercent={numericalScorePercent || 35}
         finalScorePercent={risk.score}
+        visionWeight={risk.weights?.vision_weight}
+        geoWeight={risk.weights?.geotechnical_weight}
+        overrides={risk.overrides}
       />
 
       {/* Contributing Factors */}

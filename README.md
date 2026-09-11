@@ -91,12 +91,16 @@ The platform operates using a distributed, event-driven architecture designed fo
 - **Input Parameters**: Soil moisture, rainfall accumulation (1h, 24h, 7d), slope angle, ground vibration, pore water pressure, elevation, terrain curvature, and NDVI (Normalized Difference Vegetation Index).
 - **Output**: Numerical probability score indicating slope instability.
 
-### 4. Risk Engine Fusion
-- Evaluates a weighted synthesis of visual detection confidence, geotechnical stability indices, and cumulative precipitation trends to categorize hazard levels:
-  - `LOW` (0.0 - 25.0)
-  - `MODERATE` (25.1 - 50.0)
+### 4. Hierarchical 4-Tier Risk Engine
+- **Tier 1: Topographic Slope Gating**: Applies non-linear slope factor $G(\theta)$ to prevent false alarms over low-gradient terrain.
+- **Tier 2: Continuous Geotechnical ML Pipeline**: Ingests live in-situ IoT telemetry and WeatherAPI forecasts directly into the trained XGBoost model.
+- **Tier 3: Fail-Safe Physical Overrides**: Hard limits trigger immediate critical alerts when ground displacement exceeds 8.0 mm or pore water pressure exceeds 50.0 kPa.
+- **Tier 4: Adaptive Multi-Modal Vision Fusion**: Dynamically balances visual and geotechnical weights (0% to 45% vision weight) based on camera availability and temporal multi-frame confirmation.
+- **Hazard Classification**:
+  - `SAFE` / `LOW` (0.0 - 25.0)
+  - `MODERATE` / `MONITOR` (25.1 - 50.0)
   - `HIGH` (50.1 - 75.0)
-  - `CRITICAL` (75.1 - 100.0)
+  - `CRITICAL` / `VERY_HIGH` (75.1 - 100.0)
 
 ---
 

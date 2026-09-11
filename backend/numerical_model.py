@@ -19,7 +19,7 @@ class FALCONNumericalModel:
 
         self.validation = package["validation"]
 
-        print("✅ FALCON Numerical Model Loaded")
+        print("[OK] FALCON Numerical Model Loaded")
         print("Model Type:", package["model_type"])
         print("Features:", self.features)
 

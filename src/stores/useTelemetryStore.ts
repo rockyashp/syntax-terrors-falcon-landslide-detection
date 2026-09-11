@@ -245,6 +245,12 @@ export const useTelemetryStore = create<TelemetryStoreState>((set, get) => ({
           ...state.risk,
           score: msg.risk.score,
           level: msg.risk.level,
+          trend: (msg.risk as any).trend || state.risk.trend,
+          components: (msg.risk as any).components || state.risk.components,
+          weights: (msg.risk as any).weights,
+          overrides: (msg.risk as any).overrides,
+          geotechnicalScore: (msg.risk as any).geotechnicalScore,
+          slopeGate: (msg.risk as any).slopeGate,
           lastUpdated: msg.timestamp,
         },
         aiLatest: {
