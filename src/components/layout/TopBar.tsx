@@ -24,7 +24,7 @@ export const TopBar: React.FC = () => {
   } = useTelemetryStore();
   const { unreadCount } = useAlertsStore();
   const {
-    toggleSidebar,
+    toggleMobileMenu,
     setCommandPaletteOpen,
     setWeatherModalOpen,
     setCurrentPage,
@@ -60,13 +60,13 @@ export const TopBar: React.FC = () => {
   const isWsLive = wsStatus === 'CONNECTED';
 
   return (
-    <header className="h-14 border-b border-black/[0.06] bg-white/80 backdrop-blur-xl px-4 lg:px-6 flex items-center justify-between sticky top-0 z-40 select-none">
+    <header className="h-14 border-b border-black/[0.06] bg-white/80 backdrop-blur-xl px-3 sm:px-4 lg:px-6 flex items-center justify-between sticky top-0 z-40 select-none">
       {/* Left: Brand & Location */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2 sm:space-x-4">
         <button
-          onClick={toggleSidebar}
+          onClick={toggleMobileMenu}
           aria-label="Toggle Navigation"
-          className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-black/5 lg:hidden transition-colors"
+          className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-black/5 lg:hidden transition-colors"
         >
           <Menu className="w-5 h-5" />
         </button>

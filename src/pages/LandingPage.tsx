@@ -24,17 +24,17 @@ export const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F7F5F0] text-[#171514] font-sans antialiased select-none">
       {/* Top Hero Navigation */}
-      <header className="h-20 border-b border-black/[0.06] bg-white/70 backdrop-blur-xl px-6 lg:px-12 flex items-center justify-between sticky top-0 z-50">
+      <header className="h-16 sm:h-20 border-b border-black/[0.06] bg-white/70 backdrop-blur-xl px-4 sm:px-6 lg:px-12 flex items-center justify-between sticky top-0 z-50">
         {/* Brand */}
-        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setCurrentPage('landing')}>
-          <div className="w-8 h-8 rounded-lg bg-[#E85D22] flex items-center justify-center text-white shadow-sm">
+        <div className="flex items-center space-x-2.5 sm:space-x-3 cursor-pointer" onClick={() => setCurrentPage('landing')}>
+          <div className="w-7 h-7 sm:w-8 h-8 rounded-lg bg-[#E85D22] flex items-center justify-center text-white shadow-sm">
             <Shield className="w-4 h-4 fill-white" />
           </div>
           <div>
-            <div className="font-extrabold text-lg tracking-wider text-text-primary font-display">
+            <div className="font-extrabold text-base sm:text-lg tracking-wider text-text-primary font-display">
               FALCON
             </div>
-            <p className="text-[10px] text-text-muted uppercase font-mono tracking-widest font-semibold">
+            <p className="text-[9px] sm:text-[10px] text-text-muted uppercase font-mono tracking-widest font-semibold">
               Landslide Intelligence
             </p>
           </div>
@@ -72,7 +72,7 @@ export const LandingPage: React.FC = () => {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setCurrentPage('overview')}
-            className="px-5 py-2.5 rounded-full text-xs font-bold glass-button-primary flex items-center space-x-2"
+            className="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-bold glass-button-primary flex items-center space-x-1.5 sm:space-x-2"
           >
             <span>Launch Command Center</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -81,7 +81,7 @@ export const LandingPage: React.FC = () => {
       </header>
 
       {/* Main Hero Section */}
-      <section className="relative px-6 lg:px-12 pt-12 pb-20 max-w-7xl mx-auto overflow-hidden">
+      <section className="relative px-4 sm:px-6 lg:px-12 pt-8 sm:pt-12 pb-16 sm:pb-20 max-w-7xl mx-auto overflow-hidden">
         {/* Subtle Topographic Background SVGs */}
         <div className="absolute inset-0 pointer-events-none opacity-40">
           <svg className="w-full h-full" viewBox="0 0 1200 800" fill="none">
@@ -106,15 +106,15 @@ export const LandingPage: React.FC = () => {
           </svg>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
           {/* Left Column: Huge Headline & Messaging */}
-          <div className="lg:col-span-6 space-y-6">
+          <div className="lg:col-span-6 space-y-4 sm:space-y-6">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#E85D22]/10 border border-[#E85D22]/20 text-[#E85D22] text-xs font-mono font-bold tracking-wider uppercase">
               <span className="h-2 w-2 rounded-full bg-[#E85D22] animate-pulse" />
               <span>Real-Time Autonomous System</span>
             </div>
 
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-text-primary font-display leading-[1.05]">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-text-primary font-display leading-[1.08]">
               REAL-TIME <br />
               <span className="text-[#E85D22]">LANDSLIDE</span> <br />
               INTELLIGENCE.

@@ -24,7 +24,7 @@ export const AgentOrb: React.FC<AgentOrbProps> = ({
   const isAnalyzing = status === 'ANALYZING';
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 select-none">
+    <div className="fixed bottom-16 sm:bottom-5 right-3 sm:right-5 z-50 select-none">
       <motion.button
         onClick={onClick}
         aria-label="Open FALCON AI assistant"

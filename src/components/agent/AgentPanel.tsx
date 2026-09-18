@@ -96,8 +96,8 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({
         aria-label="FALCON AI Operational Intelligence Assistant"
         className={`fixed z-50 transition-all ${
           isMinimized
-            ? 'bottom-20 right-5 w-80'
-            : 'bottom-20 right-4 sm:right-6 w-[calc(100vw-2rem)] sm:w-[420px] max-h-[85vh] sm:max-h-[640px]'
+            ? 'bottom-16 sm:bottom-20 right-3 sm:right-5 w-72 sm:w-80'
+            : 'bottom-16 sm:bottom-20 left-2 right-2 sm:left-auto sm:right-6 w-[calc(100vw-1rem)] sm:w-[420px] max-h-[78vh] sm:max-h-[640px]'
         }`}
       >
         <div className="flex flex-col h-full bg-white/95 backdrop-blur-2xl border border-black/[0.1] rounded-2xl shadow-2xl overflow-hidden text-text-primary">

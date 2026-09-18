@@ -1,6 +1,7 @@
 import React from 'react';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
+import { MobileNavBar } from './MobileNavBar';
 import { Toast } from '../common/Toast';
 import { CommandPalette } from '../common/CommandPalette';
 import { WeatherModal } from '../weather/WeatherModal';
@@ -66,14 +67,17 @@ export const AppShell: React.FC = () => {
       <TopBar />
 
       <div className="flex flex-1 relative overflow-hidden">
-        {/* Navigation Sidebar */}
+        {/* Navigation Sidebar (Desktop + Mobile Drawer) */}
         <Sidebar />
 
         {/* Main Content Viewport */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto max-w-[1920px] w-full mx-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto max-w-[1920px] w-full mx-auto">
           {renderPage()}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <MobileNavBar />
 
       {/* Global Modals, Toast, and Command Palette */}
       <Toast />

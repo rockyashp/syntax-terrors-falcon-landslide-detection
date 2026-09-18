@@ -4,6 +4,7 @@ import { NavigationPage } from '../types';
 export interface UIStoreState {
   currentPage: NavigationPage;
   isSidebarCollapsed: boolean;
+  isMobileMenuOpen: boolean;
   isCommandPaletteOpen: boolean;
   isWeatherModalOpen: boolean;
   isSettingsModalOpen: boolean;
@@ -19,6 +20,8 @@ export interface UIStoreState {
   setCurrentPage: (page: NavigationPage) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  toggleMobileMenu: () => void;
+  setMobileMenuOpen: (open: boolean) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setWeatherModalOpen: (open: boolean) => void;
   setSettingsModalOpen: (open: boolean) => void;
@@ -30,15 +33,18 @@ export interface UIStoreState {
 export const useUIStore = create<UIStoreState>((set) => ({
   currentPage: 'landing',
   isSidebarCollapsed: false,
+  isMobileMenuOpen: false,
   isCommandPaletteOpen: false,
   isWeatherModalOpen: false,
   isSettingsModalOpen: false,
   isDemoModeModalOpen: false,
   activeToast: null,
 
-  setCurrentPage: (page) => set({ currentPage: page }),
+  setCurrentPage: (page) => set({ currentPage: page, isMobileMenuOpen: false }),
   toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
   setSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
+  toggleMobileMenu: () => set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
+  setMobileMenuOpen: (open) => set({ isMobileMenuOpen: open }),
   setCommandPaletteOpen: (open) => set({ isCommandPaletteOpen: open }),
   setWeatherModalOpen: (open) => set({ isWeatherModalOpen: open }),
   setSettingsModalOpen: (open) => set({ isSettingsModalOpen: open }),
