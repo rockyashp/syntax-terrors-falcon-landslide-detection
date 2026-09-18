@@ -170,7 +170,7 @@ export const LandingPage: React.FC = () => {
               {/* High-Resolution Mountainous Escarpment Recon Image */}
               <img
                 src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1400&auto=format&fit=crop&q=85"
-                alt="Sindhupalchok Escarpment Monitoring"
+                alt="Monitoring"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
               />
 
@@ -203,7 +203,7 @@ export const LandingPage: React.FC = () => {
               <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md p-3 rounded-xl border border-black/10 text-xs font-mono shadow-md space-y-1">
                 <div className="text-[10px] text-text-muted uppercase font-bold flex items-center space-x-1">
                   <MapPin className="w-3 h-3 text-[#E85D22]" />
-                  <span>Sindhupalchok Zone</span>
+                  <span>Mumbai</span>
                 </div>
                 <div className="text-text-primary font-bold">
                   27.9142° N, 85.8456° E

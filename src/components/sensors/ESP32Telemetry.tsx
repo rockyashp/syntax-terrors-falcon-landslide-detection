@@ -47,7 +47,7 @@ export const ESP32Telemetry: React.FC = () => {
         <div className="p-2.5 rounded-lg bg-black/[0.02] border border-black/[0.04]">
           <div className="flex items-center space-x-1 text-[10px] font-mono text-text-muted mb-0.5">
             <Flame className="w-3 h-3 text-status-safe" />
-            <span>GAS</span>
+            <span>O2</span>
           </div>
           <div className="text-sm font-mono font-bold text-text-primary">
             {iotPayload.gas} <span className="text-[9px] text-text-muted font-normal">ppm</span>

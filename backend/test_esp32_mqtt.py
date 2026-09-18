@@ -49,23 +49,25 @@ start_time = time.time()
 
 
 def print_banner():
-    print("=" * 70)
-    print("   [FALCON] ESP32 SENSOR TELEMETRY LIVE MONITOR")
-    print("=" * 70)
-    print(f" Broker  : {MQTT_BROKER}:{MQTT_PORT}")
-    print(f" Topic   : {MQTT_TOPIC}")
-    print(f" Status  : Connecting...")
-    print("=" * 70)
-    print("Listening for incoming ESP32 packets. Press Ctrl+C to stop.\n")
+    print("=" * 70, flush=True)
+    print("   [FALCON] ESP32 SENSOR TELEMETRY LIVE MONITOR", flush=True)
+    print("=" * 70, flush=True)
+    print(f" Broker  : {MQTT_BROKER}:{MQTT_PORT}", flush=True)
+    print(f" Topic   : {MQTT_TOPIC}", flush=True)
+    print(f" Status  : Connecting...", flush=True)
+    print("=" * 70, flush=True)
+    print("Listening for incoming ESP32 packets. Press Ctrl+C to stop.\n", flush=True)
 
 
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        print(f"[OK CONNECTED] Subscribed to topic: '{MQTT_TOPIC}'")
-        print("Waiting for ESP32 data packet...\n" + "-" * 70)
+def on_connect(client, userdata, flags, rc, properties=None):
+    # Support both paho-mqtt v1 (rc as int) and v2 (rc as ReasonCode)
+    code = getattr(rc, "value", rc)
+    if code == 0:
+        print(f"[OK CONNECTED] Subscribed to topic: '{MQTT_TOPIC}'", flush=True)
+        print("Waiting for ESP32 data packet...\n" + "-" * 70, flush=True)
         client.subscribe(MQTT_TOPIC)
     else:
-        print(f"[ERROR] Connection failed with code: {rc}")
+        print(f"[ERROR] Connection failed with code: {rc}", flush=True)
 
 
 def on_message(client, userdata, msg):
@@ -76,9 +78,9 @@ def on_message(client, userdata, msg):
     raw_bytes = msg.payload
     raw_str = raw_bytes.decode("utf-8", errors="replace").strip()
 
-    print(f"\n[PACKET #{message_count} received at {now}]")
-    print(f"  * Raw Topic   : {msg.topic}")
-    print(f"  * Raw Payload : {raw_str}")
+    print(f"\n[PACKET #{message_count} received at {now}]", flush=True)
+    print(f"  * Raw Topic   : {msg.topic}", flush=True)
+    print(f"  * Raw Payload : {raw_str}", flush=True)
 
     # Inspect JSON & Sensor fields
     temp_val = None
@@ -102,39 +104,43 @@ def on_message(client, userdata, msg):
         if h_m: hum_val = h_m.group(1)
         if g_m: gas_val = g_m.group(1)
 
-    print("  * Parsed Sensor Values:")
+    print("  * Parsed Sensor Values:", flush=True)
 
     # Temperature Status
     if temp_val is not None and str(temp_val).lower() not in ("nan", "none", "null"):
-        print(f"    [TEMP] Temperature : {temp_val} C  [OK]")
+        print(f"    [TEMP] Temperature : {temp_val} C  [OK]", flush=True)
     else:
-        print(f"    [TEMP] Temperature : {temp_val}  [WARNING: SENSOR READ FAILURE / NAN]")
+        print(f"    [TEMP] Temperature : {temp_val}  [WARNING: SENSOR READ FAILURE / NAN]", flush=True)
 
     # Humidity Status
     if hum_val is not None and str(hum_val).lower() not in ("nan", "none", "null"):
-        print(f"    [HUM ] Humidity    : {hum_val} %   [OK]")
+        print(f"    [HUM ] Humidity    : {hum_val} %   [OK]", flush=True)
     else:
-        print(f"    [HUM ] Humidity    : {hum_val}  [WARNING: SENSOR READ FAILURE / NAN]")
+        print(f"    [HUM ] Humidity    : {hum_val}  [WARNING: SENSOR READ FAILURE / NAN]", flush=True)
 
     # Gas Status
     if gas_val is not None and str(gas_val).lower() not in ("nan", "none", "null"):
-        print(f"    [GAS ] Gas (Pin 34): {gas_val} ADC   [OK]")
+        print(f"    [GAS ] Gas (Pin 34): {gas_val} ADC   [OK]", flush=True)
     else:
-        print(f"    [GAS ] Gas (Pin 34): {gas_val}  [WARNING: NO READING]")
+        print(f"    [GAS ] Gas (Pin 34): {gas_val}  [WARNING: NO READING]", flush=True)
 
     if not is_valid_json:
-        print("  * JSON Format : [INVALID] (Contains unquoted 'nan' or syntax error)")
+        print("  * JSON Format : [INVALID] (Contains unquoted 'nan' or syntax error)", flush=True)
     else:
-        print("  * JSON Format : [VALID JSON]")
+        print("  * JSON Format : [VALID JSON]", flush=True)
 
-    print("-" * 70)
+    print("-" * 70, flush=True)
 
 
 def main():
     print_banner()
 
     client_id = f"falcon-tester-{int(time.time())}"
-    client = mqtt.Client(client_id=client_id)
+    try:
+        # paho-mqtt v2 callback version
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=client_id)
+    except (AttributeError, TypeError):
+        client = mqtt.Client(client_id=client_id)
 
     if MQTT_USERNAME:
         client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
@@ -146,11 +152,11 @@ def main():
         client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
         client.loop_forever()
     except KeyboardInterrupt:
-        print("\n\n" + "=" * 70)
-        print(f"Stopped monitoring. Total packets received: {message_count}")
-        print("=" * 70)
+        print("\n\n" + "=" * 70, flush=True)
+        print(f"Stopped monitoring. Total packets received: {message_count}", flush=True)
+        print("=" * 70, flush=True)
     except Exception as e:
-        print(f"\n[ERROR]: {e}")
+        print(f"\n[ERROR]: {e}", flush=True)
 
 
 if __name__ == "__main__":
